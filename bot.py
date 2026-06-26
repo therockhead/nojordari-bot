@@ -16,18 +16,49 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-DB_FILE = "users.json"
-LEADERBOARD_CHANNEL_ID = CHANNEL_ID
+# Remove the old DB_FILE blocks and paste this:
 
-if os.path.exists(DB_FILE):
-    with open(DB_FILE, "r") as f:
-        user_db = json.load(f)
-else:
-    user_db = {}
+JSONBIN_BIN_ID = os.getenv('JSONBIN_BIN_ID')
+JSONBIN_API_KEY = os.getenv('JSONBIN_API_KEY')
+
+def load_db():
+    if not JSONBIN_BIN_ID or not JSONBIN_API_KEY:
+        print("[WARNING] Cloud database credentials missing. Running with empty local dictionary.")
+        return {}
+    try:
+        url = f"https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}/latest"
+        headers = {"X-Master-Key": JSONBIN_API_KEY}
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code == 200:
+            print("🚀 Successfully loaded users database from the cloud!")
+            return response.json().get("record", {})
+        else:
+            print(f"[ERROR] Failed to load cloud DB. Status: {response.status_code}")
+    except Exception as e:
+        print(f"[ERROR] Could not connect to cloud DB: {e}")
+    return {}
 
 def save_db():
-    with open(DB_FILE, "w") as f:
-        json.dump(user_db, f, indent=4)
+    if not JSONBIN_BIN_ID or not JSONBIN_API_KEY:
+        print("[ERROR] Cannot save. Cloud database credentials missing.")
+        return
+    try:
+        url = f"https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}"
+        headers = {
+            "X-Master-Key": JSONBIN_API_KEY,
+            "Content-Type": "application/json"
+        }
+        # Pushes your updated database up to the cloud securely
+        response = requests.put(url, json=user_db, headers=headers, timeout=10)
+        if response.status_code == 200:
+            print("💾 Cloud database updated successfully!")
+        else:
+            print(f"[ERROR] Failed to save cloud DB. Status: {response.status_code}")
+    except Exception as e:
+        print(f"[ERROR] Could not save to cloud DB: {e}")
+
+# Automatically initialize user_db from the cloud when the bot runs
+user_db = load_db()
 
 # --- API Fetching Functions ---
 def get_codeforces_solved(username):
