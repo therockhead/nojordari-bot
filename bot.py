@@ -16,8 +16,6 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Remove the old DB_FILE blocks and paste this:
-
 JSONBIN_BIN_ID = os.getenv('JSONBIN_BIN_ID')
 JSONBIN_API_KEY = os.getenv('JSONBIN_API_KEY')
 
